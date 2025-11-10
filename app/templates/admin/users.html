@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - Mundosol{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-people"></i> Gestión de Usuarios</h2>
+                <div>
+                    <button class="btn btn-mundosol" data-bs-toggle="modal" data-bs-target="#crearUsuarioModal">
+                        <i class="bi bi-plus-circle"></i> Crear Usuario
+                    </button>
+                    <a href="{{ url_for('pedidos.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuario</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Fecha creación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usuario in usuarios %}
+                                <tr>
+                                    <td>{{ usuario.id }}</td>
+                                    <td>
+                                        <strong>{{ usuario.username }}</strong>
+                                        {% if usuario.id == current_user.id %}
+                                        <span class="badge bg-info">Tú</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ usuario.email }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if usuario.role == 'admin' %}bg-danger
+                                            {% elif usuario.role == 'logistica' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ usuario.role }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if usuario.is_active %}
+                                        <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ usuario.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username }}', '{{ usuario.email }}', '{{ usuario.role }}', {{ usuario.is_active|lower }})">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-warning" onclick="resetPassword({{ usuario.id }}, '{{ usuario.username }}')">
+                                                <i class="bi bi-key"></i>
+                                            </button>
+                                            {% if usuario.id != current_user.id %}
+                                            <button class="btn btn-outline-danger" onclick="eliminarUsuario({{ usuario.id }}, '{{ usuario.username }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Usuario -->
+<div class="modal fade" id="crearUsuarioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="crearUsuarioForm" onsubmit="crearUsuario(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="crear_username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="crear_username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="crear_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="crear_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="crear_password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="crear_password" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="crear_role" class="form-label">Rol</label>
+                        <select class="form-select" id="crear_role" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="usuario">Usuario</option>
+                            <option value="logistica">Logística</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-mundosol">Crear Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario -->
+<div class="modal fade" id="editarUsuarioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarUsuarioForm" onsubmit="guardarEdicion(event)">
+                <input type="hidden" id="editar_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editar_username" class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="editar_username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editar_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editar_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editar_role" class="form-label">Rol</label>
+                        <select class="form-select" id="editar_role" required>
+                            <option value="usuario">Usuario</option>
+                            <option value="logistica">Logística</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="editar_is_active">
+                            <label class="form-check-label" for="editar_is_active">Usuario activo</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-mundosol">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset Password -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resetear Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resetPasswordForm" onsubmit="guardarPassword(event)">
+                <input type="hidden" id="reset_id">
+                <input type="hidden" id="reset_username">
+                <div class="modal-body">
+                    <p>Resetear contraseña para: <strong id="reset_username_display"></strong></p>
+                    <div class="mb-3">
+                        <label for="reset_password" class="form-label">Nueva Contraseña</label>
+                        <input type="password" class="form-control" id="reset_password" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Resetear Contraseña</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// Crear usuario
+function crearUsuario(event) {
+    event.preventDefault();
+    
+    const data = {
+        username: document.getElementById('crear_username').value,
+        email: document.getElementById('crear_email').value,
+        password: document.getElementById('crear_password').value,
+        role: document.getElementById('crear_role').value
+    };
+    
+    fetch('/admin/users/create', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Usuario creado correctamente', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Error al crear usuario', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Error al crear usuario', 'danger');
+        console.error('Error:', error);
+    });
+}
+
+// Editar usuario
+function editarUsuario(id, username, email, role, isActive) {
+    document.getElementById('editar_id').value = id;
+    document.getElementById('editar_username').value = username;
+    document.getElementById('editar_email').value = email;
+    document.getElementById('editar_role').value = role;
+    document.getElementById('editar_is_active').checked = isActive;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editarUsuarioModal'));
+    modal.show();
+}
+
+function guardarEdicion(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('editar_id').value;
+    const data = {
+        username: document.getElementById('editar_username').value,
+        email: document.getElementById('editar_email').value,
+        role: document.getElementById('editar_role').value,
+        is_active: document.getElementById('editar_is_active').checked
+    };
+    
+    fetch(`/admin/users/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Usuario actualizado correctamente', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Error al actualizar usuario', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Error al actualizar usuario', 'danger');
+        console.error('Error:', error);
+    });
+}
+
+// Reset password
+function resetPassword(id, username) {
+    document.getElementById('reset_id').value = id;
+    document.getElementById('reset_username').value = username;
+    document.getElementById('reset_username_display').textContent = username;
+    document.getElementById('reset_password').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    modal.show();
+}
+
+function guardarPassword(event) {
+    event.preventDefault();
+    
+    const id = document.getElementById('reset_id').value;
+    const data = {
+        new_password: document.getElementById('reset_password').value
+    };
+    
+    fetch(`/admin/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Contraseña actualizada correctamente', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+        } else {
+            showToast(data.error || 'Error al actualizar contraseña', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Error al actualizar contraseña', 'danger');
+        console.error('Error:', error);
+    });
+}
+
+// Eliminar usuario
+function eliminarUsuario(id, username) {
+    if (!confirm(`¿Estás seguro de eliminar al usuario "${username}"? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+    
+    fetch(`/admin/users/${id}/delete`, {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Usuario eliminado correctamente', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Error al eliminar usuario', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Error al eliminar usuario', 'danger');
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}

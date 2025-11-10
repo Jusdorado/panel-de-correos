@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Mundosol{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row dashboard-container">
+        <!-- Columna 1: Sidebar con filtros -->
+        <div class="col-md-2 sidebar-filters">
+            <div class="p-3">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-funnel"></i> Filtros
+                </h5>
+                
+                <!-- Estados -->
+                <div class="mb-4">
+                    <h6 class="text-muted small mb-2">ESTADOS</h6>
+                    <a href="{{ url_for('pedidos.dashboard') }}" class="filter-item {% if not estado_filter %}active{% endif %}">
+                        <i class="bi bi-inbox"></i> Todos
+                        <span class="badge bg-secondary">{{ counts.total }}</span>
+                    </a>
+                    <a href="{{ url_for('pedidos.dashboard', estado='pendiente') }}" class="filter-item {% if estado_filter == 'pendiente' %}active{% endif %}">
+                        <i class="bi bi-clock"></i> Pendientes
+                        <span class="badge badge-pendiente">{{ counts.pendiente }}</span>
+                    </a>
+                    <a href="{{ url_for('pedidos.dashboard', estado='asignado') }}" class="filter-item {% if estado_filter == 'asignado' %}active{% endif %}">
+                        <i class="bi bi-person-check"></i> Asignados
+                        <span class="badge badge-asignado">{{ counts.asignado }}</span>
+                    </a>
+                    <a href="{{ url_for('pedidos.dashboard', estado='completado') }}" class="filter-item {% if estado_filter == 'completado' %}active{% endif %}">
+                        <i class="bi bi-check-circle"></i> Completados
+                        <span class="badge badge-completado">{{ counts.completado }}</span>
+                    </a>
+                    <a href="{{ url_for('pedidos.dashboard', estado='archivado') }}" class="filter-item {% if estado_filter == 'archivado' %}active{% endif %}">
+                        <i class="bi bi-archive"></i> Archivados
+                        <span class="badge badge-archivado">{{ counts.archivado }}</span>
+                    </a>
+                </div>
+                
+                <!-- Acciones rápidas -->
+                {% if current_user.role in ['admin', 'logistica'] %}
+                <div class="mb-4">
+                    <h6 class="text-muted small mb-2">ACCIONES</h6>
+                    <a href="{{ url_for('pedidos.dashboard', asignado_a='mis_asignaciones') }}" class="filter-item">
+                        <i class="bi bi-person-badge"></i> Mis asignaciones
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% if current_user.role == 'admin' %}
+                <div class="mb-4">
+                    <h6 class="text-muted small mb-2">ADMINISTRACIÓN</h6>
+                    <a href="{{ url_for('admin.users') }}" class="filter-item">
+                        <i class="bi bi-people"></i> Gestionar usuarios
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Columna 2: Lista de pedidos -->
+        <div class="col-md-5 pedidos-list-column">
+            <div class="p-3">
+                <!-- Buscador -->
+                <div class="mb-3">
+                    <form method="GET" action="{{ url_for('pedidos.dashboard') }}" id="searchForm">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="buscar" placeholder="Buscar por remitente, asunto o contenido..." value="{{ buscar }}" id="searchInput">
+                            {% if estado_filter %}
+                            <input type="hidden" name="estado" value="{{ estado_filter }}">
+                            {% endif %}
+                            {% if asignado_a_filter %}
+                            <input type="hidden" name="asignado_a" value="{{ asignado_a_filter }}">
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Lista de pedidos -->
+                <div class="pedidos-list">
+                    {% if pedidos %}
+                        {% for pedido in pedidos %}
+                        <div class="pedido-item {% if loop.first %}active{% endif %}" data-pedido-id="{{ pedido.id }}" onclick="loadPedido({{ pedido.id }})">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <strong class="pedido-remitente">{{ pedido.remitente }}</strong>
+                                <span class="badge badge-{{ pedido.estado }}">{{ pedido.estado }}</span>
+                            </div>
+                            <div class="pedido-asunto mb-1">{{ pedido.asunto }}</div>
+                            <div class="pedido-preview mb-2">{{ pedido.contenido[:100] }}...</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> {{ pedido.fecha_recepcion|timeago }}
+                                </small>
+                                {% if pedido.asignado_a %}
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> {{ pedido.asignado_a.username }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Paginación -->
+                        {% if pagination.pages > 1 %}
+                        <nav class="mt-3">
+                            <ul class="pagination pagination-sm justify-content-center">
+                                {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('pedidos.dashboard', page=pagination.prev_num, estado=estado_filter, asignado_a=asignado_a_filter, buscar=buscar) }}">Anterior</a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                                    {% if page_num %}
+                                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                            <a class="page-link" href="{{ url_for('pedidos.dashboard', page=page_num, estado=estado_filter, asignado_a=asignado_a_filter, buscar=buscar) }}">{{ page_num }}</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('pedidos.dashboard', page=pagination.next_num, estado=estado_filter, asignado_a=asignado_a_filter, buscar=buscar) }}">Siguiente</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-3">No hay pedidos para mostrar</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Columna 3: Detalle del pedido -->
+        <div class="col-md-5 pedido-detail-column">
+            <div class="p-3" id="pedido-detail">
+                {% if pedidos %}
+                    <!-- Se cargará el detalle del primer pedido via AJAX -->
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-arrow-left" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Cargando detalle...</p>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-arrow-left" style="font-size: 3rem;"></i>
+                        <p class="mt-3">Selecciona un pedido para ver los detalles</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Cargar el primer pedido automáticamente si existe
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstPedido = document.querySelector('.pedido-item');
+        if (firstPedido) {
+            const pedidoId = firstPedido.dataset.pedidoId;
+            loadPedido(pedidoId);
+        }
+    });
+    
+    // Búsqueda en tiempo real con debounce
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            document.getElementById('searchForm').submit();
+        }, 500);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,247 @@
+================================================================================
+                    MUNDOSOL - SISTEMA DE GESTION DE PEDIDOS
+                              INICIO RAPIDO
+================================================================================
+
+INSTALACION AUTOMATICA (RECOMENDADO)
+================================================================================
+
+1. Ejecutar instalador:
+   > setup.bat
+
+2. Configurar MySQL:
+   - Crear base de datos: mundosol_pedidos
+   - Crear usuario con permisos
+
+3. Editar archivo .env:
+   - Abrir .env con Notepad
+   - Configurar DATABASE_URL con tus credenciales
+   - Configurar SECRET_KEY
+   - Configurar N8N_WEBHOOK_URL
+   - Configurar WEBHOOK_TOKEN
+
+4. Iniciar aplicacion:
+   > start.bat
+
+5. Acceder:
+   - URL: http://localhost:5000
+   - Usuario: admin
+   - Contraseña: admin123
+
+
+INSTALACION MANUAL
+================================================================================
+
+1. Crear entorno virtual:
+   > python -m venv venv
+   > venv\Scripts\activate
+
+2. Instalar dependencias:
+   > pip install -r requirements.txt
+
+3. Configurar .env:
+   > copy .env.example .env
+   > notepad .env
+
+4. Crear base de datos MySQL:
+   mysql> CREATE DATABASE mundosol_pedidos;
+   mysql> CREATE USER 'mundosol_user'@'localhost' IDENTIFIED BY 'password';
+   mysql> GRANT ALL PRIVILEGES ON mundosol_pedidos.* TO 'mundosol_user'@'localhost';
+
+5. Ejecutar aplicacion:
+   > python run.py
+
+
+ESTRUCTURA DEL PROYECTO
+================================================================================
+
+panel-de-correos/
+├── app/                    # Aplicacion Flask
+│   ├── routes/            # Rutas (main, pedidos, webhooks, admin)
+│   ├── static/            # CSS y JavaScript
+│   ├── templates/         # Templates HTML
+│   ├── __init__.py        # Factory de aplicacion
+│   ├── models.py          # Modelos de base de datos
+│   └── auth.py            # Sistema de autenticacion
+├── config.py              # Configuracion
+├── run.py                 # Punto de entrada
+├── requirements.txt       # Dependencias
+├── .env.example           # Plantilla de configuracion
+├── setup.bat              # Instalador automatico
+├── start.bat              # Inicio rapido
+├── README.md              # Documentacion tecnica
+├── INSTALL.md             # Guia de instalacion
+├── N8N_SETUP.md           # Configuracion n8n
+└── MANUAL_USUARIO.md      # Manual de usuario
+
+
+FUNCIONALIDADES PRINCIPALES
+================================================================================
+
+✓ Dashboard tipo bandeja de entrada (3 columnas)
+✓ Gestion de pedidos (Pendiente → Asignado → Completado → Archivado)
+✓ Sistema de roles (Admin, Logistica, Usuario)
+✓ Integracion con Outlook via webhooks n8n
+✓ Historial completo de acciones
+✓ Panel de administracion de usuarios
+✓ Busqueda y filtros en tiempo real
+✓ Diseño responsive (movil, tablet, desktop)
+✓ Paleta de colores Mundosol
+
+
+ENDPOINTS PRINCIPALES
+================================================================================
+
+Autenticacion:
+  GET/POST /login              - Iniciar sesion
+  GET      /logout             - Cerrar sesion
+
+Pedidos:
+  GET      /dashboard          - Vista principal
+  GET      /pedidos/<id>/detalle    - Detalle de pedido
+  POST     /pedidos/<id>/asignar    - Asignar pedido
+  POST     /pedidos/<id>/completar  - Completar pedido
+  POST     /pedidos/<id>/archivar   - Archivar pedido
+
+Webhooks:
+  POST     /webhook/pedido/nuevo              - Crear pedido (desde n8n)
+  POST     /webhook/pedido/outlook-actualizado - Confirmacion
+
+Admin:
+  GET      /admin/users                    - Listar usuarios
+  POST     /admin/users/create             - Crear usuario
+  PUT      /admin/users/<id>               - Editar usuario
+  POST     /admin/users/<id>/reset-password - Resetear contraseña
+  DELETE   /admin/users/<id>/delete        - Eliminar usuario
+
+
+ROLES Y PERMISOS
+================================================================================
+
+ADMIN:
+  ✓ Acceso total al sistema
+  ✓ Gestion de usuarios
+  ✓ Ver y gestionar todos los pedidos
+  ✓ Archivar pedidos
+
+LOGISTICA:
+  ✓ Ver todos los pedidos
+  ✓ Asignar pedidos
+  ✓ Completar cualquier pedido
+  ✗ No puede archivar
+  ✗ No puede gestionar usuarios
+
+USUARIO:
+  ✓ Ver solo pedidos asignados a el
+  ✓ Completar sus propios pedidos
+  ✗ No puede asignar pedidos
+  ✗ No puede ver pedidos de otros
+
+
+CONFIGURACION N8N
+================================================================================
+
+Workflow 1: Recibir emails de Outlook
+  → Detecta nuevos emails
+  → Envia a /webhook/pedido/nuevo
+  → Crea pedido en Mundosol
+
+Workflow 2: Actualizar Outlook
+  → Recibe actualizacion de Mundosol
+  → Actualiza categoria en Outlook
+  → Confirma a Mundosol
+
+Workflow 3: Completar pedido
+  → Recibe completado de Mundosol
+  → Marca email como completado
+  → Envia respuesta al cliente (opcional)
+
+Ver N8N_SETUP.md para configuracion detallada.
+
+
+SOLUCIÓN DE PROBLEMAS
+================================================================================
+
+Error: "No module named 'MySQLdb'"
+  > pip install pymysql
+
+Error: "Access denied for user"
+  - Verificar credenciales en .env
+  - Verificar permisos del usuario MySQL
+
+Error: "Can't connect to MySQL server"
+  - Verificar que MySQL esta corriendo
+  - Windows: net start MySQL80
+  - Linux: sudo systemctl start mysql
+
+Puerto 5000 ocupado:
+  - Cambiar puerto en run.py (linea final)
+  - app.run(debug=True, host='0.0.0.0', port=8000)
+
+
+SEGURIDAD - ANTES DE PRODUCCION
+================================================================================
+
+⚠ IMPORTANTE - CAMBIAR ANTES DE USAR EN PRODUCCION:
+
+1. SECRET_KEY en .env
+   - Generar clave aleatoria segura
+   - Nunca usar el valor por defecto
+
+2. Contraseña de admin
+   - Cambiar "admin123" inmediatamente
+   - Usar contraseña fuerte
+
+3. WEBHOOK_TOKEN en .env
+   - Generar token aleatorio largo
+   - Compartir solo con n8n
+
+4. Credenciales de MySQL
+   - Usar contraseñas fuertes
+   - No usar usuario root
+
+5. HTTPS
+   - Configurar certificado SSL
+   - Usar nginx como proxy inverso
+
+
+DOCUMENTACION COMPLETA
+================================================================================
+
+README.md              - Documentacion tecnica completa
+INSTALL.md             - Guia de instalacion detallada
+N8N_SETUP.md           - Configuracion de workflows n8n
+MANUAL_USUARIO.md      - Manual para usuarios finales
+PROYECTO_COMPLETO.md   - Resumen del proyecto
+
+
+SOPORTE
+================================================================================
+
+Para dudas o problemas:
+  1. Revisar documentacion en archivos .md
+  2. Consultar logs en consola
+  3. Verificar configuracion en .env
+  4. Contactar al equipo de desarrollo
+
+
+CREDENCIALES POR DEFECTO
+================================================================================
+
+Usuario: admin
+Contraseña: admin123
+
+⚠ CAMBIAR INMEDIATAMENTE DESPUES DEL PRIMER LOGIN
+
+
+VERSION
+================================================================================
+
+Version: 1.0.0
+Fecha: Noviembre 2024
+Estado: LISTO PARA USAR
+
+
+================================================================================
+                    Desarrollado para Mundosol
+================================================================================
