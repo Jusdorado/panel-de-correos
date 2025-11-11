@@ -26,7 +26,6 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Usuario</th>
-                                    <th>Email</th>
                                     <th>Rol</th>
                                     <th>Estado</th>
                                     <th>Fecha creación</th>
@@ -43,7 +42,6 @@
                                         <span class="badge bg-info">Tú</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ usuario.email }}</td>
                                     <td>
                                         <span class="badge 
                                             {% if usuario.role == 'admin' %}bg-danger
@@ -62,7 +60,7 @@
                                     <td>{{ usuario.created_at.strftime('%d/%m/%Y') }}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username }}', '{{ usuario.email }}', '{{ usuario.role }}', {{ usuario.is_active|lower }})">
+                                            <button class="btn btn-outline-primary" onclick="editarUsuario({{ usuario.id }}, '{{ usuario.username }}', '{{ usuario.role }}', {{ usuario.is_active|lower }})">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <button class="btn btn-outline-warning" onclick="resetPassword({{ usuario.id }}, '{{ usuario.username }}')">
@@ -101,10 +99,6 @@
                         <input type="text" class="form-control" id="crear_username" required>
                     </div>
                     <div class="mb-3">
-                        <label for="crear_email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="crear_email" required>
-                    </div>
-                    <div class="mb-3">
                         <label for="crear_password" class="form-label">Contraseña</label>
                         <input type="password" class="form-control" id="crear_password" required minlength="6">
                     </div>
@@ -141,10 +135,6 @@
                     <div class="mb-3">
                         <label for="editar_username" class="form-label">Usuario</label>
                         <input type="text" class="form-control" id="editar_username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editar_email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="editar_email" required>
                     </div>
                     <div class="mb-3">
                         <label for="editar_role" class="form-label">Rol</label>
@@ -207,7 +197,6 @@ function crearUsuario(event) {
     
     const data = {
         username: document.getElementById('crear_username').value,
-        email: document.getElementById('crear_email').value,
         password: document.getElementById('crear_password').value,
         role: document.getElementById('crear_role').value
     };
@@ -233,10 +222,9 @@ function crearUsuario(event) {
 }
 
 // Editar usuario
-function editarUsuario(id, username, email, role, isActive) {
+function editarUsuario(id, username, role, isActive) {
     document.getElementById('editar_id').value = id;
     document.getElementById('editar_username').value = username;
-    document.getElementById('editar_email').value = email;
     document.getElementById('editar_role').value = role;
     document.getElementById('editar_is_active').checked = isActive;
     
@@ -250,7 +238,6 @@ function guardarEdicion(event) {
     const id = document.getElementById('editar_id').value;
     const data = {
         username: document.getElementById('editar_username').value,
-        email: document.getElementById('editar_email').value,
         role: document.getElementById('editar_role').value,
         is_active: document.getElementById('editar_is_active').checked
     };

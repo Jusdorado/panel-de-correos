@@ -18,7 +18,6 @@ if __name__ == '__main__':
         if not admin:
             admin = User(
                 username='admin',
-                email='admin@mundosol.com',
                 role='admin',
                 is_active=True
             )

@@ -24,13 +24,12 @@ def create_user():
     data = request.get_json()
     
     # Validar campos requeridos
-    required_fields = ['username', 'email', 'password', 'role']
+    required_fields = ['username', 'password', 'role']
     for field in required_fields:
         if field not in data or not data[field]:
             return jsonify({'error': f'Campo requerido: {field}'}), 400
     
     username = data['username'].strip()
-    email = data['email'].strip()
     password = data['password']
     role = data['role']
     
@@ -42,14 +41,10 @@ def create_user():
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'El nombre de usuario ya existe'}), 400
     
-    if User.query.filter_by(email=email).first():
-        return jsonify({'error': 'El email ya está registrado'}), 400
-    
     try:
         # Crear usuario
         user = User(
             username=username,
-            email=email,
             role=role,
             is_active=True
         )
@@ -64,7 +59,6 @@ def create_user():
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email,
                 'role': user.role,
                 'is_active': user.is_active
             }
@@ -98,13 +92,6 @@ def update_user(user_id):
                 return jsonify({'error': 'El nombre de usuario ya existe'}), 400
             user.username = new_username
         
-        if 'email' in data and data['email'].strip():
-            new_email = data['email'].strip()
-            # Verificar que no exista otro usuario con ese email
-            existing = User.query.filter(User.email == new_email, User.id != user_id).first()
-            if existing:
-                return jsonify({'error': 'El email ya está registrado'}), 400
-            user.email = new_email
         
         if 'role' in data:
             if data['role'] not in ['admin', 'logistica', 'usuario']:
@@ -125,7 +112,6 @@ def update_user(user_id):
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email,
                 'role': user.role,
                 'is_active': user.is_active
             }
