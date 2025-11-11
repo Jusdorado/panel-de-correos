@@ -97,9 +97,8 @@ def detalle_pedido(pedido_id):
     """Retorna HTML parcial con detalle completo del pedido"""
     pedido = Pedido.query.get_or_404(pedido_id)
     
-    # Verificar permisos
-    if current_user.role == 'usuario' and pedido.asignado_a_id != current_user.id:
-        return jsonify({'error': 'No tienes permiso para ver este pedido'}), 403
+    # Todos pueden ver los detalles de cualquier pedido
+    # Las restricciones de acción se manejan en el template y en las rutas de acción
     
     # Obtener historial ordenado
     historial = pedido.historial.order_by(HistorialPedido.timestamp.desc()).all()
@@ -186,9 +185,13 @@ def completar_pedido(pedido_id):
     """Marcar pedido como completado"""
     pedido = Pedido.query.get_or_404(pedido_id)
     
-    # Verificar permisos: debe ser el asignado o admin/logistica
-    if current_user.role == 'usuario' and pedido.asignado_a_id != current_user.id:
-        return jsonify({'error': 'No tienes permiso para completar este pedido'}), 403
+    # Verificar permisos: 
+    # - Admin puede completar cualquier pedido
+    # - Logística solo puede completar si está asignado a ellos
+    # - Usuario solo puede completar si está asignado a ellos
+    if current_user.role != 'admin':
+        if pedido.asignado_a_id != current_user.id:
+            return jsonify({'error': 'No tienes permiso para completar este pedido. Solo el usuario asignado o un administrador puede hacerlo.'}), 403
     
     if pedido.estado == 'completado':
         return jsonify({'error': 'El pedido ya está completado'}), 400

@@ -18,7 +18,7 @@ class User(UserMixin, db.Model):
     # Relaciones
     pedidos_asignados = db.relationship('Pedido', foreign_keys='Pedido.asignado_a_id', backref='asignado_a', lazy='dynamic')
     pedidos_completados = db.relationship('Pedido', foreign_keys='Pedido.completado_por_id', backref='completado_por', lazy='dynamic')
-    historial = db.relationship('HistorialPedido', backref='usuario', lazy='dynamic')
+    historial = db.relationship('HistorialPedido', backref='usuario', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password):
         """Genera hash de contraseña"""
@@ -38,10 +38,19 @@ class Pedido(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     outlook_message_id = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    remitente = db.Column(db.String(255), nullable=False)
+    
+    # Información del correo de Outlook
+    correo_origen = db.Column(db.String(255), nullable=True)  # Email de la cuenta de Outlook que recibió
+    remitente_nombre = db.Column(db.String(255), nullable=True)  # Nombre del remitente
+    remitente_email = db.Column(db.String(255), nullable=False)  # Email del remitente
+    remitente = db.Column(db.String(255), nullable=False)  # Combinado para compatibilidad
+    
     asunto = db.Column(db.String(500), nullable=False)
     contenido = db.Column(db.Text, nullable=False)
-    archivos_adjuntos = db.Column(db.JSON, default=list)  # Lista de {filename, url}
+    contenido_html = db.Column(db.Text, nullable=True)  # Versión HTML del contenido
+    
+    archivos_adjuntos = db.Column(db.JSON, default=list)  # Lista de {filename, contentType, size, url}
+    fecha_correo = db.Column(db.DateTime, nullable=True)  # Fecha del correo original
     
     estado = db.Column(db.String(20), default='pendiente', nullable=False, index=True)  # 'pendiente', 'asignado', 'completado', 'archivado'
     prioridad = db.Column(db.String(10), default='normal', nullable=False)  # 'baja', 'normal', 'alta'

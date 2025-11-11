@@ -18,7 +18,7 @@ def validate_webhook_token():
 @webhooks_bp.route('/pedido/nuevo', methods=['POST'])
 def nuevo_pedido():
     """
-    Recibe nuevo pedido desde n8n workflow.
+    Recibe nuevo pedido desde n8n workflow con toda la información del correo.
     No requiere login pero valida token.
     """
     # Validar token
@@ -29,13 +29,13 @@ def nuevo_pedido():
         data = request.get_json()
         
         # Validar campos requeridos
-        required_fields = ['message_id', 'from', 'subject', 'body']
+        required_fields = ['messageId', 'subject', 'body']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Campo requerido faltante: {field}'}), 400
         
         # Verificar si el pedido ya existe
-        existing = Pedido.query.filter_by(outlook_message_id=data['message_id']).first()
+        existing = Pedido.query.filter_by(outlook_message_id=data['messageId']).first()
         if existing:
             return jsonify({
                 'success': True,
@@ -43,13 +43,29 @@ def nuevo_pedido():
                 'pedido_id': existing.id
             }), 200
         
-        # Crear nuevo pedido
+        # Extraer información del remitente
+        from_data = data.get('from', {})
+        if isinstance(from_data, dict):
+            remitente_nombre = from_data.get('name', '')
+            remitente_email = from_data.get('email', 'unknown@unknown.com')
+            remitente = f"{remitente_nombre} <{remitente_email}>" if remitente_nombre else remitente_email
+        else:
+            remitente = str(from_data)
+            remitente_email = str(from_data)
+            remitente_nombre = ''
+        
+        # Crear nuevo pedido con toda la información
         pedido = Pedido(
-            outlook_message_id=data['message_id'],
-            remitente=data['from'],
+            outlook_message_id=data['messageId'],
+            correo_origen=data.get('account', data.get('accountName', '')),
+            remitente_nombre=remitente_nombre,
+            remitente_email=remitente_email,
+            remitente=remitente,
             asunto=data['subject'],
-            contenido=data['body'],
+            contenido=data.get('body', data.get('bodyPreview', '')),
+            contenido_html=data.get('bodyHtml'),
             archivos_adjuntos=data.get('attachments', []),
+            fecha_correo=data.get('receivedDateTime'),
             prioridad=data.get('prioridad', 'normal'),
             estado='pendiente'
         )
@@ -58,11 +74,17 @@ def nuevo_pedido():
         db.session.flush()  # Para obtener el ID
         
         # Crear entrada en historial
+        detalles = f'Pedido recibido desde Outlook\n'
+        detalles += f'Cuenta: {pedido.correo_origen}\n'
+        detalles += f'De: {remitente}\n'
+        if data.get('attachments'):
+            detalles += f'Archivos adjuntos: {len(data["attachments"])}'
+        
         historial = HistorialPedido(
             pedido_id=pedido.id,
             usuario_id=None,
             accion='creado',
-            detalles=f'Pedido recibido desde Outlook: {data["from"]}'
+            detalles=detalles
         )
         
         db.session.add(historial)
@@ -71,12 +93,16 @@ def nuevo_pedido():
         return jsonify({
             'success': True,
             'message': 'Pedido creado correctamente',
-            'pedido_id': pedido.id
+            'pedido_id': pedido.id,
+            'remitente': remitente,
+            'cuenta_origen': pedido.correo_origen
         }), 201
     
     except Exception as e:
         db.session.rollback()
         print(f"Error al crear pedido: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
