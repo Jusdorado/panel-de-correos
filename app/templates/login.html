@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Mundosol</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/generated-image.png') }}">
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ url_for('static', filename='img/generated-image.png') }}">
+    
     <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -16,32 +20,171 @@
     
     <style>
         body {
-            background: linear-gradient(135deg, var(--mundosol-green) 0%, var(--mundosol-lime) 100%);
+            background-image: url("{{ url_for('static', filename='img/login-background.svg') }}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .login-card {
-            max-width: 400px;
+        
+        .login-container {
+            max-width: 420px;
             width: 100%;
+            padding: 20px;
         }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 22, 137, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+        }
+        
+        .login-card .card-body {
+            padding: 3rem 2rem;
+        }
+        
         .login-logo {
-            font-size: 4rem;
-            color: var(--mundosol-green);
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #001689 0%, #0066cc 100%);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 22, 137, 0.2);
+        }
+        
+        .login-logo img {
+            width: 50px;
+            height: 50px;
+            filter: brightness(0) invert(1);
+        }
+        
+        .login-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #001689;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-subtitle {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15);
+            background-color: #f8f9ff;
+        }
+        
+        .input-group-text {
+            background: transparent;
+            border: 2px solid #e0e0e0;
+            color: #0066cc;
+            border-right: none;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+        }
+        
+        .form-check-input {
+            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+        }
+        
+        .form-check-input:checked {
+            background-color: #0066cc;
+            border-color: #0066cc;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #001689 0%, #0066cc 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 22, 137, 0.2);
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 22, 137, 0.3);
+            color: white;
+        }
+        
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.85rem;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+        
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #155724;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="login-container">
         <div class="login-card">
-            <div class="card shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="bi bi-box-seam login-logo"></i>
-                        <h2 class="fw-bold mt-3" style="color: var(--mundosol-green);">Mundosol</h2>
-                        <p class="text-muted">Gestión de Pedidos</p>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="login-logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="50" height="50">
+                            <rect width="256" height="256" rx="40" fill="white"/>
+                            <rect x="40" y="60" width="140" height="100" rx="8" fill="white" stroke="#001689" stroke-width="8"/>
+                            <line x1="40" y1="60" x2="110" y2="110" stroke="white" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="180" y1="60" x2="110" y2="110" stroke="white" stroke-width="6" stroke-linecap="round"/>
+                            <rect x="40" y="100" width="140" height="60" fill="none" stroke="white" stroke-width="8"/>
+                            <g transform="translate(160, 100)">
+                                <line x1="20" y1="30" x2="35" y2="50" stroke="#7ED244" stroke-width="10" stroke-linecap="round"/>
+                                <line x1="35" y1="50" x2="65" y2="15" stroke="#7ED244" stroke-width="10" stroke-linecap="round"/>
+                            </g>
+                        </svg>
                     </div>
+                    <h2 class="login-title">Mundosol</h2>
+                    <p class="login-subtitle">Gestión de Pedidos</p>
+                </div>
                     
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
@@ -78,17 +221,16 @@
                             </label>
                         </div>
                         
-                        <button type="submit" class="btn btn-mundosol w-100 py-2">
+                        <button type="submit" class="btn btn-login w-100">
                             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
                         </button>
                     </form>
-                </div>
             </div>
-            
-            <p class="text-center text-white mt-3">
-                <small>&copy; 2024 Mundosol - Gestión de Pedidos</small>
-            </p>
         </div>
+        
+        <p class="login-footer">
+            <small>&copy; 2024 Mundosol - Gestión de Pedidos</small>
+        </p>
     </div>
     
     <!-- Bootstrap 5.3 JS -->

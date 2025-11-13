@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+from dateutil import parser as date_parser
 from app import db
 from app.models import Pedido, HistorialPedido
 from config import Config
@@ -28,10 +29,30 @@ def nuevo_pedido():
     try:
         data = request.get_json()
         
+        # LOG: Mostrar datos recibidos
+        print("\n" + "="*60)
+        print("📨 WEBHOOK RECIBIDO")
+        print("="*60)
+        print(f"Headers: {dict(request.headers)}")
+        print(f"Datos recibidos: {data}")
+        print(f"Tipo de data: {type(data)}")
+        if data:
+            print(f"Claves en data: {list(data.keys())}")
+            print(f"\n📋 DETALLES:")
+            print(f"  messageId: {data.get('messageId')}")
+            print(f"  subject: {data.get('subject')}")
+            print(f"  body (primeros 100 chars): {str(data.get('body', ''))[:100]}")
+            print(f"  bodyHtml (primeros 100 chars): {str(data.get('bodyHtml', ''))[:100]}")
+            print(f"  bodyPlain (primeros 100 chars): {str(data.get('bodyPlain', ''))[:100]}")
+            print(f"  from: {data.get('from')}")
+            print(f"  attachments count: {len(data.get('attachments', []))}")
+        print("="*60 + "\n")
+        
         # Validar campos requeridos
         required_fields = ['messageId', 'subject', 'body']
         for field in required_fields:
             if field not in data:
+                print(f"❌ Campo faltante: {field}")
                 return jsonify({'error': f'Campo requerido faltante: {field}'}), 400
         
         # Verificar si el pedido ya existe
@@ -54,6 +75,38 @@ def nuevo_pedido():
             remitente_email = str(from_data)
             remitente_nombre = ''
         
+        # Parsear fecha del correo
+        fecha_correo = None
+        if data.get('receivedDateTime'):
+            try:
+                fecha_correo = date_parser.parse(data['receivedDateTime'])
+            except Exception as e:
+                print(f"⚠️  Error parseando fecha: {e}")
+                fecha_correo = None
+        
+        # Procesar archivos adjuntos - validar que tengan contenido base64
+        archivos_procesados = []
+        archivos_raw = data.get('attachments', [])
+        
+        if isinstance(archivos_raw, list):
+            for idx, archivo in enumerate(archivos_raw):
+                if isinstance(archivo, dict):
+                    # Validar que tenga contenido
+                    if archivo.get('content') and archivo.get('encoding') == 'base64':
+                        archivos_procesados.append({
+                            'filename': archivo.get('filename', f'archivo_{idx}'),
+                            'mimeType': archivo.get('mimeType', 'application/octet-stream'),
+                            'size': archivo.get('size', 0),
+                            'sizeKB': archivo.get('sizeKB', 0),
+                            'type': archivo.get('type', 'otro'),
+                            'content': archivo.get('content'),
+                            'encoding': 'base64',
+                            'isInline': archivo.get('isInline', False)
+                        })
+                        print(f"✅ Archivo procesado: {archivo.get('filename')} ({archivo.get('sizeKB', 0)} KB)")
+                    else:
+                        print(f"⚠️  Archivo sin contenido base64: {archivo.get('filename', f'archivo_{idx}')}")
+        
         # Crear nuevo pedido con toda la información
         pedido = Pedido(
             outlook_message_id=data['messageId'],
@@ -62,16 +115,36 @@ def nuevo_pedido():
             remitente_email=remitente_email,
             remitente=remitente,
             asunto=data['subject'],
-            contenido=data.get('body', data.get('bodyPreview', '')),
-            contenido_html=data.get('bodyHtml'),
-            archivos_adjuntos=data.get('attachments', []),
-            fecha_correo=data.get('receivedDateTime'),
-            prioridad=data.get('prioridad', 'normal'),
+            contenido=data.get('bodyPlain', data.get('body', data.get('bodyPreview', ''))),
+            contenido_html=data.get('bodyHtml', data.get('body', '')).encode('utf-8') if data.get('bodyHtml', data.get('body', '')) else None,
+            archivos_adjuntos=archivos_procesados,
+            fecha_correo=fecha_correo,
+            tipo_mensaje=data.get('tipoMensaje', 'nuevo'),
+            es_respuesta=data.get('esRespuesta', False),
+            es_reenviado=data.get('esReenviado', False),
+            destinatarios_cc=data.get('cc', []),
+            destinatarios_bcc=data.get('bcc', []),
+            es_leido=data.get('isRead', False),
+            conversation_id=data.get('conversationId'),
+            conversation_topic=data.get('conversationTopic'),
+            parent_message_id=data.get('parentMessageId'),
+            in_reply_to=data.get('inReplyTo'),
+            prioridad=data.get('importance', 'normal'),
             estado='pendiente'
         )
         
         db.session.add(pedido)
         db.session.flush()  # Para obtener el ID
+        
+        # LOG: Mostrar qué se guardó
+        print(f"\n✅ PEDIDO CREADO:")
+        print(f"  ID: {pedido.id}")
+        print(f"  Asunto: {pedido.asunto}")
+        print(f"  Remitente: {pedido.remitente}")
+        print(f"  Contenido (primeros 100 chars): {pedido.contenido[:100]}")
+        print(f"  Contenido HTML (primeros 100 chars): {str(pedido.contenido_html)[:100]}")
+        print(f"  Archivos: {len(pedido.archivos_adjuntos)}")
+        print()
         
         # Crear entrada en historial
         detalles = f'Pedido recibido desde Outlook\n'

@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Gradientes principales -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#001689;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0066cc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00a8e8;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradiente para formas flotantes -->
+    <linearGradient id="floatGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7ED244;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#7ED244;stop-opacity:0.1" />
+    </linearGradient>
+    
+    <linearGradient id="floatGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.05" />
+    </linearGradient>
+    
+    <!-- Filtro de blur para efecto suave -->
+    <filter id="blur">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
+    </filter>
+    
+    <!-- Animación de flotación -->
+    <style>
+      @keyframes float1 {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-30px) rotate(5deg); }
+      }
+      @keyframes float2 {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(20px) rotate(-5deg); }
+      }
+      @keyframes float3 {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-25px) rotate(3deg); }
+      }
+      .float1 { animation: float1 6s ease-in-out infinite; }
+      .float2 { animation: float2 7s ease-in-out infinite; }
+      .float3 { animation: float3 8s ease-in-out infinite; }
+    </style>
+  </defs>
+  
+  <!-- Fondo base -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
+  
+  <!-- Formas geométricas flotantes - Parte superior izquierda -->
+  <g class="float1" opacity="0.6">
+    <circle cx="200" cy="150" r="120" fill="url(#floatGrad1)" filter="url(#blur)"/>
+    <rect x="50" y="50" width="200" height="200" rx="40" fill="url(#floatGrad2)" filter="url(#blur)"/>
+  </g>
+  
+  <!-- Formas geométricas flotantes - Parte superior derecha -->
+  <g class="float2" opacity="0.5">
+    <circle cx="1750" cy="200" r="150" fill="url(#floatGrad1)" filter="url(#blur)"/>
+    <polygon points="1850,100 1950,150 1900,250" fill="url(#floatGrad2)" filter="url(#blur)"/>
+  </g>
+  
+  <!-- Formas geométricas flotantes - Centro -->
+  <g class="float3" opacity="0.4">
+    <rect x="800" y="300" width="300" height="300" rx="50" fill="url(#floatGrad2)" filter="url(#blur)"/>
+    <circle cx="1000" cy="500" r="100" fill="url(#floatGrad1)" filter="url(#blur)"/>
+  </g>
+  
+  <!-- Formas geométricas flotantes - Parte inferior izquierda -->
+  <g class="float1" opacity="0.5">
+    <polygon points="100,900 200,950 150,1050" fill="url(#floatGrad1)" filter="url(#blur)"/>
+    <circle cx="300" cy="950" r="80" fill="url(#floatGrad2)" filter="url(#blur)"/>
+  </g>
+  
+  <!-- Formas geométricas flotantes - Parte inferior derecha -->
+  <g class="float2" opacity="0.6">
+    <rect x="1600" y="800" width="250" height="250" rx="40" fill="url(#floatGrad1)" filter="url(#blur)"/>
+    <circle cx="1750" cy="850" r="100" fill="url(#floatGrad2)" filter="url(#blur)"/>
+  </g>
+  
+  <!-- Líneas decorativas diagonales -->
+  <line x1="0" y1="0" x2="400" y2="400" stroke="rgba(255,255,255,0.1)" stroke-width="2" stroke-dasharray="10,10"/>
+  <line x1="1920" y1="0" x2="1520" y2="400" stroke="rgba(255,255,255,0.1)" stroke-width="2" stroke-dasharray="10,10"/>
+  <line x1="0" y1="1080" x2="400" y2="680" stroke="rgba(255,255,255,0.1)" stroke-width="2" stroke-dasharray="10,10"/>
+  <line x1="1920" y1="1080" x2="1520" y2="680" stroke="rgba(255,255,255,0.1)" stroke-width="2" stroke-dasharray="10,10"/>
+  
+  <!-- Puntos decorativos -->
+  <circle cx="400" cy="300" r="4" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="1500" cy="400" r="4" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="300" cy="800" r="4" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="1600" cy="700" r="4" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="950" cy="200" r="4" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="950" cy="900" r="4" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- Rectángulo semi-transparente para mejorar legibilidad del texto -->
+  <rect x="0" y="350" width="1920" height="380" fill="rgba(0,22,137,0.3)" filter="url(#blur)"/>
+</svg>

@@ -403,3 +403,55 @@ a:hover {
 .border-mundosol {
     border-color: var(--mundosol-green) !important;
 }
+
+/* Email HTML Container - Mostrar correos exactamente como llegan */
+.email-html-container {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    overflow: visible;
+    word-wrap: break-word;
+}
+
+/* Estilos para el contenido HTML del correo */
+.email-html-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px 0;
+}
+
+.email-html-container table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.email-html-container td,
+.email-html-container th {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.email-html-container a {
+    color: var(--mundosol-green);
+    text-decoration: none;
+}
+
+.email-html-container a:hover {
+    text-decoration: underline;
+}
+
+/* Contenedor de texto plano */
+.email-text-container {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #333;
+}

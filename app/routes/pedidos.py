@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from datetime import datetime
 import requests
+import base64
+from io import BytesIO
 from app import db
 from app.models import Pedido, User, HistorialPedido
 from app.auth import role_required
@@ -308,3 +310,41 @@ def historial():
         pedidos=pedidos_paginados.items,
         pagination=pedidos_paginados
     )
+
+
+@pedidos_bp.route('/pedidos/<int:pedido_id>/descargar/<int:archivo_idx>')
+@login_required
+def descargar_archivo(pedido_id, archivo_idx):
+    """Descarga un archivo adjunto del pedido"""
+    pedido = Pedido.query.get_or_404(pedido_id)
+    
+    # Validar que el índice sea válido
+    if not pedido.archivos_adjuntos or archivo_idx >= len(pedido.archivos_adjuntos):
+        flash('Archivo no encontrado', 'error')
+        return redirect(url_for('pedidos.detalle_pedido', pedido_id=pedido_id))
+    
+    archivo = pedido.archivos_adjuntos[archivo_idx]
+    
+    try:
+        # Si el archivo tiene contenido base64
+        if 'content' in archivo and archivo.get('encoding') == 'base64':
+            # Decodificar base64
+            contenido_bytes = base64.b64decode(archivo['content'])
+            
+            # Crear BytesIO para enviar como descarga
+            buffer = BytesIO(contenido_bytes)
+            
+            return send_file(
+                buffer,
+                mimetype=archivo.get('mimeType', 'application/octet-stream'),
+                as_attachment=True,
+                download_name=archivo.get('filename', f'archivo_{archivo_idx}')
+            )
+        else:
+            flash('Archivo sin contenido disponible', 'error')
+            return redirect(url_for('pedidos.detalle_pedido', pedido_id=pedido_id))
+    
+    except Exception as e:
+        print(f"Error descargando archivo: {e}")
+        flash(f'Error al descargar archivo: {str(e)}', 'error')
+        return redirect(url_for('pedidos.detalle_pedido', pedido_id=pedido_id))

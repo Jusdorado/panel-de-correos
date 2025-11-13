@@ -47,10 +47,26 @@ class Pedido(db.Model):
     
     asunto = db.Column(db.String(500), nullable=False)
     contenido = db.Column(db.Text, nullable=False)
-    contenido_html = db.Column(db.Text, nullable=True)  # Versión HTML del contenido
+    contenido_html = db.Column(db.LargeBinary, nullable=True)  # Versión HTML del contenido (puede ser muy grande)
     
     archivos_adjuntos = db.Column(db.JSON, default=list)  # Lista de {filename, contentType, size, url}
     fecha_correo = db.Column(db.DateTime, nullable=True)  # Fecha del correo original
+    
+    # Metadata del mensaje
+    tipo_mensaje = db.Column(db.String(20), default='nuevo', nullable=False)  # 'nuevo', 'respuesta', 'reenviado'
+    es_respuesta = db.Column(db.Boolean, default=False, nullable=False)
+    es_reenviado = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Información adicional del correo
+    destinatarios_cc = db.Column(db.JSON, default=list)  # CC
+    destinatarios_bcc = db.Column(db.JSON, default=list)  # BCC
+    es_leido = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Hilo de conversación
+    conversation_id = db.Column(db.String(255), nullable=True, index=True)  # ID único del hilo
+    conversation_topic = db.Column(db.String(500), nullable=True)  # Tema del hilo
+    parent_message_id = db.Column(db.String(255), nullable=True)  # ID del mensaje padre
+    in_reply_to = db.Column(db.String(255), nullable=True)  # Referencia al mensaje anterior
     
     estado = db.Column(db.String(20), default='pendiente', nullable=False, index=True)  # 'pendiente', 'asignado', 'completado', 'archivado'
     prioridad = db.Column(db.String(10), default='normal', nullable=False)  # 'baja', 'normal', 'alta'

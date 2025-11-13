@@ -45,6 +45,7 @@ def create_app(config_class=Config):
     
     # Registrar filtros Jinja personalizados
     from datetime import datetime
+    import re
     
     @app.template_filter('timeago')
     def timeago_filter(dt):
@@ -71,6 +72,39 @@ def create_app(config_class=Config):
         else:
             weeks = int(seconds / 604800)
             return f'hace {weeks} semana{"s" if weeks != 1 else ""}'
+    
+    @app.template_filter('fix_email_html')
+    def fix_email_html(html_content):
+        """Procesa HTML de correo para asegurar que las imágenes base64 se rendericen correctamente y los enlaces abran en nueva pestaña"""
+        if not html_content:
+            return ''
+        
+        # Asegurar que las imágenes base64 tengan el formato correcto
+        html_content = re.sub(
+            r'src\s*=\s*["\']?data:image/([^;]+);base64,([A-Za-z0-9+/=]+)["\']?',
+            r'src="data:image/\1;base64,\2"',
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        # Agregar target="_blank" a TODOS los enlaces <a>
+        # Primero, agregar target="_blank" a los que no tienen target
+        html_content = re.sub(
+            r'<a\s+([^>]*?)href\s*=\s*["\']([^"\']*)["\']([^>]*)>',
+            lambda m: f'<a {m.group(1)}href="{m.group(2)}" target="_blank"{m.group(3)}>' if 'target' not in m.group(0).lower() else m.group(0),
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        # Segundo, reemplazar cualquier target existente que no sea "_blank" por "_blank"
+        html_content = re.sub(
+            r'target\s*=\s*["\']([^"\']*)["\']',
+            r'target="_blank"',
+            html_content,
+            flags=re.IGNORECASE
+        )
+        
+        return html_content
     
     # Manejadores de errores
     @app.errorhandler(403)

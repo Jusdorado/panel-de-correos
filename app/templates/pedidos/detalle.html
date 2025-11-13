@@ -14,8 +14,23 @@
 <div class="pedido-detail-body">
     <h4 class="mb-3">{{ pedido.asunto }}</h4>
     
+    <!-- Contenido del correo - HTML original -->
     <div class="pedido-contenido mb-4">
-        <p>{{ pedido.contenido }}</p>
+        {% if pedido.contenido_html %}
+            <!-- Mostrar HTML original directamente sin iframe -->
+            <div class="email-html-container">
+                {% if pedido.contenido_html is string %}
+                    {{ pedido.contenido_html | fix_email_html | safe }}
+                {% else %}
+                    {{ pedido.contenido_html.decode('utf-8') | fix_email_html | safe }}
+                {% endif %}
+            </div>
+        {% else %}
+            <!-- Fallback a texto plano si no hay HTML -->
+            <div class="email-text-container">
+                <p style="white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;">{{ pedido.contenido }}</p>
+            </div>
+        {% endif %}
     </div>
     
     <!-- Archivos adjuntos -->
@@ -26,8 +41,12 @@
         </h6>
         <div class="list-group">
             {% for archivo in pedido.archivos_adjuntos %}
-            <a href="{{ archivo.url }}" class="list-group-item list-group-item-action" target="_blank">
-                <i class="bi bi-file-earmark"></i> {{ archivo.filename }}
+            <a href="{{ url_for('pedidos.descargar_archivo', pedido_id=pedido.id, archivo_idx=loop.index0) }}" class="list-group-item list-group-item-action">
+                <i class="bi bi-file-earmark"></i> 
+                {{ archivo.filename }} 
+                {% if archivo.sizeKB %}
+                    <small class="text-muted">({{ archivo.sizeKB }} KB)</small>
+                {% endif %}
             </a>
             {% endfor %}
         </div>

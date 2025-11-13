@@ -1,0 +1,264 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "output": "raw",
+        "filters": {},
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -176
+      ],
+      "id": "6b948515-6f45-4791-8d8f-37c5a43b4330",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "shZHXpfs3DeliLXY",
+          "name": "outlook justo para pruebas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.1.43:5000/webhook/pedido/nuevo",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Token",
+              "value": "mundosol-webhook-token-2024-cambiar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        -128
+      ],
+      "id": "31301980-3b53-4d57-a82b-99ca6b6bfa48",
+      "name": "Webhook Python Mundosol"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "messageId": {
+          "__rl": true,
+          "value": "={{ $('Microsoft Outlook Trigger').item.json.id }}",
+          "mode": "id"
+        },
+        "updateFields": {
+          "folderId": {
+            "__rl": true,
+            "value": "AAMkAGNjMDE3M2E2LTRmOTEtNDNjOS1hNDFjLTg3NjAzNjE3YmUyNwAuAAAAAADFcnlSS4DRTI1er_WijVUbAQBNHTUkHZaYS49dNUCfOyijAAADjR08AAA=",
+            "mode": "list",
+            "cachedResultName": "Pedidos Pendientes",
+            "cachedResultUrl": "https://outlook.office365.com/mail/AAMkAGNjMDE3M2E2LTRmOTEtNDNjOS1hNDFjLTg3NjAzNjE3YmUyNwAuAAAAAADFcnlSS4DRTI1er_WijVUbAQBNHTUkHZaYS49dNUCfOyijAAADjR08AAA%3D"
+          },
+          "isRead": false
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -176
+      ],
+      "id": "437cda33-5474-4bda-96a9-58a9daab3c7b",
+      "name": "Mover a Carpeta Pedidos",
+      "webhookId": "94c78b8a-df3e-42e4-95bb-ffcf50101b8a",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "shZHXpfs3DeliLXY",
+          "name": "outlook justo para pruebas"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// PROCESAR CORREO CON ADJUNTOS + IMÁGENES INLINE\n// ============================================\n\nconst outlookData = $('Microsoft Outlook Trigger').item.json;\n\n// Detectar tipo de mensaje\nfunction detectarTipoMensaje(subject, body, bodyHtml) {\n  const subjectLower = (subject || '').toLowerCase();\n  const bodyLower = (body || '').toLowerCase();\n  \n  let tipo = 'nuevo';\n  let esRespuesta = false;\n  let esReenviado = false;\n  \n  if (subjectLower.startsWith('re:')) {\n    esRespuesta = true;\n    tipo = 'respuesta';\n  }\n  \n  if (subjectLower.startsWith('fwd:') || bodyLower.includes('---------- forwarded message')) {\n    esReenviado = true;\n    tipo = 'reenviado';\n  }\n  \n  return { tipo, esRespuesta, esReenviado };\n}\n\n// Extraer imágenes embebidas del HTML\nfunction extraerImagenesEmbebidas(htmlContent) {\n  const imagenes = [];\n  if (!htmlContent) return imagenes;\n  \n  // Regex para encontrar data URLs (base64 images)\n  const dataUrlRegex = /data:image\\/([a-z]+);base64,([A-Za-z0-9+/=]+)/g;\n  let match;\n  let contador = 0;\n  \n  while ((match = dataUrlRegex.exec(htmlContent)) !== null) {\n    const tipo = match[1];\n    const base64 = match[2];\n    \n    imagenes.push({\n      filename: `imagen-inline-${contador}.${tipo}`,\n      mimeType: `image/${tipo}`,\n      type: 'image',\n      content: base64,\n      encoding: 'base64',\n      isInline: true,\n      size: (base64.length * 0.75), // Aproximado\n      sizeKB: parseFloat(((base64.length * 0.75) / 1024).toFixed(2))\n    });\n    \n    console.log(`📸 Imagen inline encontrada: ${tipo} (${((base64.length * 0.75) / 1024).toFixed(2)} KB)`);\n    contador++;\n  }\n  \n  return imagenes;\n}\n\nconst tipoMensaje = detectarTipoMensaje(outlookData.subject, outlookData.body?.content, outlookData.bodyHtml);\n\nconst emailData = {\n  messageId: outlookData.id,\n  conversationId: outlookData.conversationId,\n  from: {\n    name: outlookData.from?.emailAddress?.name || 'Sin nombre',\n    email: outlookData.from?.emailAddress?.address || 'unknown@unknown.com'\n  },\n  to: outlookData.toRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  cc: outlookData.ccRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  bcc: outlookData.bccRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  subject: outlookData.subject || 'Sin asunto',\n  bodyPreview: outlookData.bodyPreview || '',\n  bodyHtml: outlookData.body?.content || '',\n  bodyPlain: outlookData.bodyPreview || '',\n  receivedDateTime: outlookData.receivedDateTime,\n  sentDateTime: outlookData.sentDateTime,\n  importance: outlookData.importance || 'normal',\n  isRead: outlookData.isRead || false,\n  hasAttachments: outlookData.hasAttachments || false,\n  webLink: outlookData.webLink,\n  tipoMensaje: tipoMensaje.tipo,\n  esRespuesta: tipoMensaje.esRespuesta,\n  esReenviado: tipoMensaje.esReenviado,\n  conversationTopic: outlookData.conversationTopic || outlookData.subject,\n  parentMessageId: outlookData.parentMessageId || null,\n  inReplyTo: outlookData.inReplyTo || null\n};\n\n// ============================================\n// PROCESAR ADJUNTOS BINARIOS + IMÁGENES INLINE\n// ============================================\n\nconst attachments = [];\nconst binaryData = $('Microsoft Outlook Trigger').item.binary;\n\n// Primero agregar adjuntos binarios\nif (binaryData && Object.keys(binaryData).length > 0) {\n  console.log(`📎 Adjuntos totales: ${Object.keys(binaryData).length}`);\n  \n  for (const [key, file] of Object.entries(binaryData)) {\n    try {\n      // CORRECCIÓN: Convertir Buffer a base64 correctamente\n      let base64Content = '';\n      \n      if (file.data instanceof Buffer) {\n        // Si es un Buffer de Node.js\n        base64Content = file.data.toString('base64');\n      } else if (typeof file.data === 'string') {\n        // Si ya es string base64\n        base64Content = file.data;\n      } else if (file.data && typeof file.data === 'object') {\n        // Si es un objeto con propiedades\n        const buffer = Buffer.from(file.data);\n        base64Content = buffer.toString('base64');\n      }\n      \n      const mimeType = file.mimeType || 'application/octet-stream';\n      const fileName = file.fileName || 'sin_nombre';\n      const fileSize = file.fileSize || 0;\n      \n      let tipo = 'otro';\n      if (mimeType.startsWith('image/')) tipo = 'image';\n      else if (mimeType.includes('pdf')) tipo = 'pdf';\n      else if (mimeType.includes('spreadsheet') || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) tipo = 'excel';\n      else if (mimeType.includes('word') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) tipo = 'word';\n      else if (mimeType.includes('zip') || fileName.endsWith('.zip')) tipo = 'zip';\n      else if (mimeType.includes('text') || fileName.endsWith('.txt') || fileName.endsWith('.csv')) tipo = 'text';\n      \n      attachments.push({\n        filename: fileName,\n        mimeType: mimeType,\n        size: fileSize,\n        sizeKB: parseFloat((fileSize / 1024).toFixed(2)),\n        type: tipo,\n        content: base64Content,\n        encoding: 'base64',\n        isInline: false\n      });\n      \n      console.log(`✅ Adjunto: ${fileName} (${(fileSize / 1024).toFixed(2)} KB, tipo: ${tipo})`);\n    } catch (error) {\n      console.error(`❌ Error procesando ${key}:`, error.message);\n    }\n  }\n}\n\n// Luego agregar imágenes embebidas\nconst imagenesInline = extraerImagenesEmbebidas(emailData.bodyHtml);\nattachments.push(...imagenesInline);\n\nconsole.log(`📊 Total de archivos: ${attachments.length} (${binaryData ? Object.keys(binaryData).length : 0} adjuntos + ${imagenesInline.length} imágenes inline)`);\n\n// ============================================\n// PAYLOAD FINAL\n// ============================================\n\nreturn {\n  json: {\n    processingInfo: {\n      timestamp: new Date().toISOString(),\n      workflow: 'n8n-mundosol-pedidos',\n      version: '2.7',\n      source: 'outlook-trigger',\n      hadBinaryData: attachments.length > 0\n    },\n    email: emailData,\n    attachments: {\n      count: attachments.length,\n      hasAttachments: attachments.length > 0,\n      files: attachments\n    }\n  }\n};"
+      },
+      "id": "eae19081-7a5b-4944-92fe-cdf67371032b",
+      "name": "Procesar Archivos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e61f4443-26a7-4b15-a6be-b9df033a60f8",
+              "leftValue": "={{ $('Microsoft Outlook Trigger').item.json.hasAttachments }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        -112
+      ],
+      "id": "e7b6e25a-a330-44a9-9c1c-c7e1dfa36965",
+      "name": "¿Hay Archivos?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// PROCESAR CORREO SIN ADJUNTOS + IMÁGENES INLINE\n// ============================================\n\nconst outlookData = $('Microsoft Outlook Trigger').item.json;\n\n// Detectar tipo de mensaje\nfunction detectarTipoMensaje(subject, body, bodyHtml) {\n  const subjectLower = (subject || '').toLowerCase();\n  const bodyLower = (body || '').toLowerCase();\n  \n  let tipo = 'nuevo';\n  let esRespuesta = false;\n  let esReenviado = false;\n  \n  if (subjectLower.startsWith('re:')) {\n    esRespuesta = true;\n    tipo = 'respuesta';\n  }\n  \n  if (subjectLower.startsWith('fwd:') || bodyLower.includes('---------- forwarded message')) {\n    esReenviado = true;\n    tipo = 'reenviado';\n  }\n  \n  return { tipo, esRespuesta, esReenviado };\n}\n\n// Extraer imágenes embebidas del HTML\nfunction extraerImagenesEmbebidas(htmlContent) {\n  const imagenes = [];\n  if (!htmlContent) return imagenes;\n  \n  const dataUrlRegex = /data:image\\/([a-z]+);base64,([A-Za-z0-9+/=]+)/g;\n  let match;\n  let contador = 0;\n  \n  while ((match = dataUrlRegex.exec(htmlContent)) !== null) {\n    const tipo = match[1];\n    const base64 = match[2];\n    \n    imagenes.push({\n      filename: `imagen-inline-${contador}.${tipo}`,\n      mimeType: `image/${tipo}`,\n      type: 'image',\n      content: base64,\n      encoding: 'base64',\n      isInline: true,\n      size: (base64.length * 0.75),\n      sizeKB: parseFloat(((base64.length * 0.75) / 1024).toFixed(2))\n    });\n    \n    console.log(`📸 Imagen inline encontrada: ${tipo} (${((base64.length * 0.75) / 1024).toFixed(2)} KB)`);\n    contador++;\n  }\n  \n  return imagenes;\n}\n\nconst tipoMensaje = detectarTipoMensaje(outlookData.subject, outlookData.body?.content, outlookData.bodyHtml);\n\nconst emailData = {\n  messageId: outlookData.id,\n  conversationId: outlookData.conversationId,\n  from: {\n    name: outlookData.from?.emailAddress?.name || 'Sin nombre',\n    email: outlookData.from?.emailAddress?.address || 'unknown@unknown.com'\n  },\n  to: outlookData.toRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  cc: outlookData.ccRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  bcc: outlookData.bccRecipients?.map(r => ({\n    name: r.emailAddress?.name || '',\n    email: r.emailAddress?.address || ''\n  })) || [],\n  subject: outlookData.subject || 'Sin asunto',\n  bodyPreview: outlookData.bodyPreview || '',\n  bodyHtml: outlookData.body?.content || '',\n  bodyPlain: outlookData.bodyPreview || '',\n  receivedDateTime: outlookData.receivedDateTime,\n  sentDateTime: outlookData.sentDateTime,\n  importance: outlookData.importance || 'normal',\n  isRead: outlookData.isRead || false,\n  hasAttachments: outlookData.hasAttachments || false,\n  webLink: outlookData.webLink,\n  tipoMensaje: tipoMensaje.tipo,\n  esRespuesta: tipoMensaje.esRespuesta,\n  esReenviado: tipoMensaje.esReenviado,\n  conversationTopic: outlookData.conversationTopic || outlookData.subject,\n  parentMessageId: outlookData.parentMessageId || null,\n  inReplyTo: outlookData.inReplyTo || null\n};\n\n// Extraer imágenes embebidas\nconst imagenesInline = extraerImagenesEmbebidas(emailData.bodyHtml);\n\nconsole.log('📧 Procesando correo sin adjuntos binarios');\nconsole.log(`📊 Imágenes inline encontradas: ${imagenesInline.length}`);\n\n// ============================================\n// PAYLOAD FINAL - SIN ADJUNTOS BINARIOS\n// ============================================\n\nreturn {\n  json: {\n    processingInfo: {\n      timestamp: new Date().toISOString(),\n      workflow: 'n8n-mundosol-pedidos',\n      version: '2.7',\n      source: 'outlook-trigger',\n      hadBinaryData: false\n    },\n    email: emailData,\n    attachments: {\n      count: imagenesInline.length,\n      hasAttachments: imagenesInline.length > 0,\n      files: imagenesInline\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -32
+      ],
+      "id": "29512723-74e5-4f66-8263-a1749f7babd0",
+      "name": "Procesado sin adjuntos"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener datos del nodo anterior\nconst input = items[0].json;\n\n// Construir payload para Flask - ENVIANDO HTML ORIGINAL + METADATA + HILO\nconst payload = {\n  messageId: input.email?.messageId,\n  conversationId: input.email?.conversationId,\n  subject: input.email?.subject,\n  body: input.email?.bodyHtml || input.email?.bodyPlain,  // Priorizar HTML\n  bodyHtml: input.email?.bodyHtml || input.email?.bodyPlain,\n  bodyPlain: input.email?.bodyPlain,\n  from: {\n    name: input.email?.from?.name || 'Sin nombre',\n    email: input.email?.from?.email || 'unknown@unknown.com'\n  },\n  to: input.email?.to || [],\n  cc: input.email?.cc || [],\n  bcc: input.email?.bcc || [],\n  account: 'outlook-pedidos',\n  accountName: 'Outlook Pedidos',\n  attachments: input.attachments?.files || [],\n  receivedDateTime: input.email?.receivedDateTime,\n  sentDateTime: input.email?.sentDateTime,\n  importance: input.email?.importance || 'normal',\n  isRead: input.email?.isRead || false,\n  hasAttachments: input.email?.hasAttachments || false,\n  webLink: input.email?.webLink,\n  tipoMensaje: input.email?.tipoMensaje || 'nuevo',\n  esRespuesta: input.email?.esRespuesta || false,\n  esReenviado: input.email?.esReenviado || false,\n  // HILO COMPLETO\n  conversationTopic: input.email?.conversationTopic,\n  parentMessageId: input.email?.parentMessageId,\n  inReplyTo: input.email?.inReplyTo\n};\n\nconsole.log('📦 Payload construido con', payload.attachments?.length || 0, 'archivos');\n\nreturn {\n  json: payload\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -128
+      ],
+      "id": "9ee1a588-ad3b-434e-8d88-890f40d45a4f",
+      "name": "Construir Payload Webhook"
+    }
+  ],
+  "connections": {
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Mover a Carpeta Pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Python Mundosol": {
+      "main": [
+        []
+      ]
+    },
+    "Mover a Carpeta Pedidos": {
+      "main": [
+        [
+          {
+            "node": "¿Hay Archivos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Archivos": {
+      "main": [
+        [
+          {
+            "node": "Construir Payload Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay Archivos?": {
+      "main": [
+        [
+          {
+            "node": "Procesar Archivos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Procesado sin adjuntos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesado sin adjuntos": {
+      "main": [
+        [
+          {
+            "node": "Construir Payload Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir Payload Webhook": {
+      "main": [
+        [
+          {
+            "node": "Webhook Python Mundosol",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "f0e8aa9a0a190033aa476e965cff6971a9d306c55ed3b8f05c80960108cd9a4a"
+  }
+}
