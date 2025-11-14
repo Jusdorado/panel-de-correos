@@ -1,0 +1,57 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: panel-mysql
+    restart: always
+    network_mode: host
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: panel_correos
+      MYSQL_USER: panel_user
+      MYSQL_PASSWORD: panel_pass_123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  panel-correos:
+    build: .
+    container_name: panel-correos
+    restart: always
+    network_mode: host
+    environment:
+      - TZ=Europe/Madrid
+      - PYTHONUNBUFFERED=1
+      - DB_HOST=127.0.0.1
+      - DB_PORT=3306
+      - DB_NAME=panel_correos
+      - DB_USER=panel_user
+      - DB_PASSWORD=panel_pass_123
+      - DATABASE_URL=mysql+pymysql://panel_user:panel_pass_123@127.0.0.1/panel_correos
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+volumes:
+  mysql_data:
